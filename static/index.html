@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASAS DEBITANDO CHECKER</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #050a18; --panel: #0d1a35; --cyan: #22e6ff;
+    --pink: #ff3d7f; --green: #3dff9c; --text: #c8d6f0;
+    --muted: #5a6d94; --red: #ff4d5e;
+  }
+  body {
+    background: radial-gradient(ellipse at top, #0a1830 0%, #050a18 60%);
+    color: var(--text);
+    font-family: 'Courier New', ui-monospace, monospace;
+    min-height: 100vh; padding: 20px 12px 40px;
+    background-attachment: fixed;
+  }
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 70% 60%, #9cf, transparent),
+      radial-gradient(1px 1px at 40% 80%, #fff, transparent),
+      radial-gradient(2px 2px at 85% 15%, #6cf, transparent),
+      radial-gradient(1px 1px at 10% 70%, #fff, transparent);
+    background-size: 800px 800px; opacity: 0.4;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+  header { text-align: center; margin-bottom: 22px; }
+  .robot {
+    width: 60px; height: 60px; margin: 0 auto 8px; border-radius: 14px;
+    background: linear-gradient(180deg, #1a2c50, #0d1a35);
+    border: 2px solid var(--cyan);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 0 24px rgba(34,230,255,0.45);
+  }
+  h1 {
+    font-size: 30px; font-weight: 900; letter-spacing: 1.5px;
+    background: linear-gradient(90deg, #22e6ff 0%, #6cf 50%, #ff3d7f 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 30px rgba(34,230,255,0.35); line-height: 1.05;
+  }
+  .subline { margin-top: 10px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .chip {
+    font-size: 10px; padding: 4px 10px; border-radius: 12px;
+    background: rgba(61,255,156,0.1); color: var(--green);
+    border: 1px solid rgba(61,255,156,0.4);
+    font-weight: 700; letter-spacing: 1px;
+  }
+  .chip.pink { background: rgba(255,61,127,0.1); color: var(--pink); border-color: rgba(255,61,127,0.4); }
+  .panel {
+    background: linear-gradient(180deg, rgba(13,26,53,0.95), rgba(10,20,40,0.95));
+    border: 1px solid rgba(34,230,255,0.25);
+    border-radius: 14px; padding: 18px; margin-bottom: 16px;
+    box-shadow: 0 0 30px rgba(34,230,255,0.08);
+  }
+  .panel-title {
+    color: var(--cyan); font-size: 13px; font-weight: 700;
+    letter-spacing: 1.5px; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-title small { color: var(--muted); font-weight: 400; letter-spacing: 0.5px; font-size: 10px; }
+  textarea {
+    width: 100%; min-height: 120px; resize: vertical;
+    background: #060e20; color: var(--text);
+    border: 1px solid rgba(34,230,255,0.3); border-radius: 8px;
+    padding: 12px; font-family: inherit; font-size: 13px;
+    outline: none; transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(34,230,255,0.15); }
+  .controls { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button {
+    flex: 1; min-width: 120px; padding: 12px 16px;
+    border-radius: 30px; border: none; cursor: pointer;
+    font-family: inherit; font-weight: 800; font-size: 13px;
+    letter-spacing: 1px; transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-start { background: linear-gradient(180deg, #3dff9c, #16c47a); color: #052210; box-shadow: 0 0 20px rgba(61,255,156,0.35); }
+  .btn-stop { background: linear-gradient(180deg, #ff5e7a, #c4243f); color: #fff; box-shadow: 0 0 20px rgba(255,94,122,0.3); }
+  .btn-copy { background: linear-gradient(180deg, #4db4ff, #1e6bd6); color: #fff; box-shadow: 0 0 20px rgba(77,180,255,0.3); }
+  .bar { height: 8px; background: #0a1428; border-radius: 4px; overflow: hidden; margin-top: 14px; position: relative; }
+  .bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #22e6ff, #3dff9c, #ff3d7f); transition: width 0.3s ease; }
+  .bar-label { text-align: center; font-size: 11px; color: var(--muted); margin-top: 8px; letter-spacing: 0.5px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat {
+    background: linear-gradient(180deg, rgba(13,26,53,0.95), rgba(10,20,40,0.95));
+    border: 1px solid rgba(34,230,255,0.2);
+    border-radius: 12px; padding: 14px 8px; text-align: center;
+  }
+  .stat .num { font-size: 26px; font-weight: 900; line-height: 1; }
+  .stat .lbl { font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 6px; font-weight: 700; }
+  .stat.total .num { color: var(--cyan); }
+  .stat.approved .num { color: var(--green); }
+  .stat.processed .num { color: #ffd23d; }
+  .stat.declined .num { color: var(--pink); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 620px) { .split { grid-template-columns: 1fr; } }
+  .result-panel {
+    background: linear-gradient(180deg, rgba(13,26,53,0.95), rgba(10,20,40,0.95));
+    border-radius: 14px; padding: 14px; min-height: 260px;
+    display: flex; flex-direction: column;
+  }
+  .result-panel.approved { border: 1px solid rgba(61,255,156,0.35); }
+  .result-panel.declined { border: 1px solid rgba(255,61,127,0.35); }
+  .result-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 10px;
+  }
+  .result-panel.approved .result-head { color: var(--green); }
+  .result-panel.declined .result-head { color: var(--pink); }
+  .pill { font-size: 11px; padding: 2px 10px; border-radius: 10px; background: rgba(255,255,255,0.05); }
+  .list { flex: 1; overflow-y: auto; font-size: 11px; line-height: 1.5; max-height: 360px; padding-right: 4px; }
+  .list::-webkit-scrollbar { width: 6px; }
+  .list::-webkit-scrollbar-thumb { background: rgba(34,230,255,0.3); border-radius: 3px; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 10px; font-size: 11px; letter-spacing: 0.5px; }
+  .empty .live { color: var(--pink); display: block; margin-top: 8px; font-weight: 700; animation: pulse 1.5s infinite; }
+  .empty .engine { color: var(--cyan); display: block; margin-top: 4px; font-weight: 700; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .item {
+    background: rgba(0,0,0,0.25); border-left: 3px solid var(--muted);
+    padding: 8px 10px; border-radius: 6px; margin-bottom: 6px;
+    word-break: break-all;
+  }
+  .item.approved { border-left-color: var(--green); }
+  .item.declined { border-left-color: var(--pink); }
+  .item.error { border-left-color: #ffd23d; }
+  .item .card { color: #fff; font-weight: 700; }
+  .item .msg { color: var(--muted); margin-top: 3px; }
+  .item .meta { color: var(--cyan); font-size: 10px; margin-top: 3px; }
+  .item .lat { color: #ffd23d; }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="wrap">
+
+  <header>
+    <div class="robot">🤖</div>
+    <h1>ASSAS DEBITANDO<br>CHECKER</h1>
+    <div class="subline">
+      <span class="chip">ASAS GATE - CHECKER</span>
+      <span class="chip pink">AUTOMATED CHECKOUT ENGINE</span>
+    </div>
+  </header>
+
+  <div class="panel">
+    <div class="panel-title">
+      <span>INPUT TERMINAL (CC|MM|YY|CVV)</span>
+      <small>COLE ABAIXO</small>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px;">
+      LISTA DE CARTÕES (CC|MM|YY|CVV)
+    </div>
+    <textarea id="cards" placeholder="5579100388807107|11|26|230&#10;5579100388807867|11|26|674"></textarea>
+    <div class="controls">
+      <button class="btn-start" id="startBtn">▶ INICIAR</button>
+      <button class="btn-stop" id="stopBtn" disabled>■ PARAR</button>
+      <button class="btn-copy" id="copyBtn">📋 COPIAR APROVADAS</button>
+    </div>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    <div class="bar-label" id="barLabel">Aguardando início...</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat total"><div class="num" id="sTotal">0</div><div class="lbl">TOTAL</div></div>
+    <div class="stat approved"><div class="num" id="sApproved">0</div><div class="lbl">APROVADAS</div></div>
+    <div class="stat processed"><div class="num" id="sProcessed">0</div><div class="lbl">PROCESSADAS</div></div>
+    <div class="stat declined"><div class="num" id="sDeclined">0</div><div class="lbl">REPROVADAS</div></div>
+  </div>
+
+  <div class="split">
+    <div class="result-panel approved">
+      <div class="result-head">
+        <span>APROVADAS</span>
+        <span class="pill" id="pApproved">0</span>
+      </div>
+      <div class="list" id="listApproved">
+        <div class="empty">
+          PROCESSANDO EM TEMPO REAL...<br>
+          <span class="live">gateway asaas engine</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-panel declined">
+      <div class="result-head">
+        <span>REPROVADAS / VALIDAÇÃO</span>
+        <span class="pill" id="pDeclined">0</span>
+      </div>
+      <div class="list" id="listDeclined">
+        <div class="empty">Aguardando início...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cardsEl = $('cards');
+  const startBtn = $('startBtn');
+  const stopBtn = $('stopBtn');
+  const copyBtn = $('copyBtn');
+  const barFill = $('barFill');
+  const barLabel = $('barLabel');
+  const sTotal = $('sTotal');
+  const sApproved = $('sApproved');
+  const sProcessed = $('sProcessed');
+  const sDeclined = $('sDeclined');
+  const pApproved = $('pApproved');
+  const pDeclined = $('pDeclined');
+  const listApproved = $('listApproved');
+  const listDeclined = $('listDeclined');
+
+  let ws = null;
+  let jobId = null;
+  let running = false;
+  const approvedCards = [];
+
+  const reset = () => {
+    sTotal.textContent = '0';
+    sApproved.textContent = '0';
+    sProcessed.textContent = '0';
+    sDeclined.textContent = '0';
+    pApproved.textContent = '0';
+    pDeclined.textContent = '0';
+    barFill.style.width = '0%';
+    barLabel.textContent = 'Aguardando início...';
+    listApproved.innerHTML = '<div class="empty">PROCESSANDO EM TEMPO REAL...<br><span class="live">gateway asaas engine</span></div>';
+    listDeclined.innerHTML = '<div class="empty">Aguardando início...</div>';
+    approvedCards.length = 0;
+  };
+
+  const setRunning = (r) => {
+    running = r;
+    startBtn.disabled = r;
+    stopBtn.disabled = !r;
+  };
+
+  const addApproved = (item) => {
+    const empty = listApproved.querySelector('.empty');
+    if (empty) empty.remove();
+    const div = document.createElement('div');
+    div.className = 'item approved';
+    div.innerHTML = `<div class="card">#${item.index} ${item.card}</div>
+                     <div class="msg">✅ ${item.message}</div>
+                     <div class="meta">⏱ <span class="lat">${item.latency_ms}ms</span> · exp ${item.expiry}</div>`;
+    listApproved.appendChild(div);
+    listApproved.scrollTop = listApproved.scrollHeight;
+    approvedCards.push(item.raw);
+  };
+
+  const addDeclined = (item) => {
+    const empty = listDeclined.querySelector('.empty');
+    if (empty) empty.remove();
+    const div = document.createElement('div');
+    div.className = 'item declined';
+    div.innerHTML = `<div class="card">#${item.index} ${item.card}</div>
+                     <div class="msg">⚠️ ${item.message}</div>
+                     <div class="meta">⏱ <span class="lat">${item.latency_ms}ms</span> · exp ${item.expiry}</div>`;
+    listDeclined.appendChild(div);
+    listDeclined.scrollTop = listDeclined.scrollHeight;
+  };
+
+  const updateProgress = (p) => {
+    const pct = p.total ? (p.processed / p.total) * 100 : 0;
+    barFill.style.width = pct.toFixed(1) + '%';
+    barLabel.textContent = `Processadas: ${p.processed}/${p.total} · ${p.approved} aprovadas · ${p.declined + p.errors} reprovadas`;
+    sProcessed.textContent = p.processed;
+    sApproved.textContent = p.approved;
+    sDeclined.textContent = p.declined + p.errors;
+    pApproved.textContent = p.approved;
+    pDeclined.textContent = p.declined + p.errors;
+  };
+
+  const connectWs = (id) => {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws/${id}`);
+
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'result') {
+        const d = msg.data;
+        if (d.status === 'APROVADA') addApproved(d);
+        else addDeclined(d);
+        updateProgress(msg.progress);
+      } else if (msg.type === 'done') {
+        setRunning(false);
+        barLabel.textContent = `Concluído! ${msg.data.approved} aprovadas, ${msg.data.declined + msg.data.errors} reprovadas · ${msg.data.elapsed}s`;
+      } else if (msg.type === 'error') {
+        setRunning(false);
+        barLabel.textContent = 'Erro: ' + msg.data;
+      }
+    };
+
+    ws.onclose = () => { if (running) setRunning(false); };
+    ws.onerror = () => { setRunning(false); barLabel.textContent = 'Erro de conexão WebSocket'; };
+  };
+
+  startBtn.onclick = async () => {
+    const text = cardsEl.value.trim();
+    if (!text) { barLabel.textContent = 'Cole pelo menos um cartão'; return; }
+
+    reset();
+    setRunning(true);
+    barLabel.textContent = 'Criando job...';
+
+    try {
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cards: text })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({detail: 'erro desconhecido'}));
+        setRunning(false);
+        barLabel.textContent = 'Erro: ' + (err.detail || res.statusText);
+        return;
+      }
+
+      const data = await res.json();
+      jobId = data.job_id;
+      sTotal.textContent = data.total;
+      barLabel.textContent = `${data.total} cartões enfileirados${data.invalid_count ? ' · ' + data.invalid_count + ' inválidos' : ''}`;
+      connectWs(jobId);
+    } catch (e) {
+      setRunning(false);
+      barLabel.textContent = 'Falha ao criar job: ' + e.message;
+    }
+  };
+
+  stopBtn.onclick = () => {
+    if (ws) { try { ws.close(); } catch(_) {} ws = null; }
+    setRunning(false);
+    barLabel.textContent = 'Interrompido pelo usuário';
+  };
+
+  copyBtn.onclick = async () => {
+    if (!approvedCards.length) { barLabel.textContent = 'Nenhuma aprovada para copiar'; return; }
+    const text = approvedCards.join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      barLabel.textContent = `${approvedCards.length} aprovadas copiadas`;
+    } catch (_) {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      barLabel.textContent = `${approvedCards.length} aprovadas copiadas`;
+    }
+  };
+})();
+</script>
+</body>
+</html>
