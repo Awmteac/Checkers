@@ -275,7 +275,7 @@ async def create_job(req: JobRequest):
     if not parsed:
         raise HTTPException(400, "Nenhum cartão válido. Use o formato cc|mm|yy|cvv")
 
-    job = Job(id=uuid.uuid4().hex[:12], total=len(parsed))
+    job = Job(job_id=uuid.uuid4().hex[:12], total=len(parsed))
     async with JOBS_LOCK:
         JOBS[job.id] = job
 
@@ -377,5 +377,13 @@ if STATIC_DIR.exists():
 async def index():
     idx = STATIC_DIR / "index.html"
     if idx.exists():
-        return HTMLResponse(idx.read_text(encoding="utf-8"))
+        html = idx.read_text(encoding="utf-8")
+        return HTMLResponse(
+            html,
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
     return HTMLResponse("<h1>ASAS Checker</h1><p>static/index.html missing</p>", status_code=500)
